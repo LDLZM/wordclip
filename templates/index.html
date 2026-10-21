@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 回答转 Word · 排版一键搞定</title>
+<style>
+  :root{
+    --paper:#fbf8f2; --ink:#26221c; --sub:#6b6259;
+    --line:#e2d9c9; --gold:#a8791f; --red:#a8341f;
+    --box:#fffdf8;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",
+                "Source Han Sans SC",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:28px 20px 60px}
+  header{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    border-bottom:1px solid var(--line); padding-bottom:14px; margin-bottom:20px}
+  h1{font-size:21px; margin:0; letter-spacing:.5px}
+  h1 span{color:var(--gold)}
+  .tag{font-size:12px; color:var(--sub); border:1px solid var(--line);
+    border-radius:999px; padding:2px 9px}
+.cols{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+
+  /* 排版设置：预设卡片 */
+  .presets{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px}
+  .preset{
+  border:1px solid #e2d8c6; border-radius:8px; padding:10px 12px; cursor:pointer;
+  background:#fdfaf4; transition:border-color .15s, background .15s;
+  }
+  .preset:hover{border-color:#a8791f}
+  .preset.on{border-color:#a8791f; background:#fdf3df; box-shadow:inset 0 0 0 1px #a8791f}
+  .preset b{display:block; font-size:14px; color:#3a3026; margin-bottom:3px}
+  .preset span{display:block; font-size:12px; color:#8a7e6d; line-height:1.5}
+  .preset em{display:block; font-size:11px; color:#b0a595; font-style:normal; margin-top:5px}
+  /* 微调下拉框 */
+  .tweak{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px 14px}
+  .tweak label{display:flex; flex-direction:column; font-size:12px; color:#6b6155; gap:4px}
+  .tweak select{
+  font:inherit; font-size:13px; padding:5px 7px; border:1px solid #ddd2be;
+  border-radius:6px; background:#fff; color:#3a3026;
+  }
+  .tweak select:focus{outline:none; border-color:#a8791f; box-shadow:0 0 0 2px #f0e2c4}
+  .card{background:var(--box); border:1px solid var(--line); border-radius:10px;
+    padding:14px; display:flex; flex-direction:column}
+  .card h2{font-size:13px; margin:0 0 10px; color:var(--sub); font-weight:600;
+    letter-spacing:.6px; display:flex; justify-content:space-between; align-items:center}
+  textarea{
+    width:100%; min-height:380px; resize:vertical; border:1px solid var(--line);
+    border-radius:8px; padding:12px; font-size:13.5px; line-height:1.7;
+    font-family:ui-monospace,SFMono-Regular,Consolas,"Microsoft YaHei",monospace;
+    background:#fff; color:var(--ink); outline:none;
+  }
+  textarea:focus{border-color:var(--gold); box-shadow:0 0 0 3px rgba(168,121,31,.10)}
+  .row{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap}
+  input[type=text]{
+    flex:1; min-width:160px; border:1px solid var(--line); border-radius:8px;
+    padding:9px 11px; font-size:13.5px; background:#fff; outline:none;
+  }
+  input[type=text]:focus{border-color:var(--gold)}
+  button{
+    border:1px solid var(--line); background:#fff; color:var(--ink);
+    border-radius:8px; padding:9px 15px; font-size:13.5px; cursor:pointer;
+    transition:.15s; font-family:inherit;
+  }
+  button:hover{border-color:var(--gold); background:#fffaf0}
+  button.primary{background:var(--ink); color:#fff; border-color:var(--ink)}
+  button.primary:hover{background:#3a3229}
+  button.primary:disabled{opacity:.5; cursor:not-allowed}
+  button.gold{border-color:var(--gold); color:var(--gold)}
+  .preview{
+    border:1px solid var(--line); border-radius:8px; background:#fff;
+    padding:22px 26px; overflow-y:auto; max-height:520px;
+    font-family:"Songti SC",SimSun,serif; font-size:14px; line-height:1.85;
+  }
+  .preview h1{font-size:19px; text-align:center; margin:0 0 14px;
+    font-family:"Heiti SC",SimHei,sans-serif}
+  .preview h2{font-size:16px; margin:18px 0 8px; font-family:"Heiti SC",SimHei,sans-serif}
+  .preview h3{font-size:14.5px; margin:14px 0 6px; font-family:"Heiti SC",SimHei,sans-serif}
+  .preview p{margin:0 0 10px; text-indent:2em; text-align:justify}
+  .preview ul,.preview ol{margin:8px 0 12px; padding-left:2em}
+  .preview li{margin:3px 0; text-indent:0}
+  .preview pre{background:#f6f4ef; padding:10px 12px; border-radius:6px;
+    overflow-x:auto; font-size:12px; text-indent:0}
+  .preview code{font-family:Consolas,monospace; font-size:12.5px}
+  .preview table{border-collapse:collapse; margin:10px auto; font-size:13px}
+  .preview th,.preview td{border:none; padding:5px 12px; text-indent:0}
+  .preview thead th{border-top:1.5px solid #000; border-bottom:.75px solid #000}
+  .preview tbody tr:last-child td{border-bottom:1.5px solid #000}
+  .preview blockquote{margin:10px 2em; font-family:KaiTi,serif; color:#4a453c}
+  .hint{font-size:12px; color:var(--sub); margin-top:9px; line-height:1.7}
+  .hint b{color:var(--red); font-weight:600}
+  .status{font-size:12.5px; min-height:18px; margin-top:8px}
+  .status.ok{color:#2f6b3a}
+  .status.err{color:var(--red)}
+  .empty{color:#b0a595; text-align:center; margin-top:120px; font-family:inherit;
+    font-size:13px; text-indent:0}
+  details{margin-top:12px; font-size:12.5px; color:var(--sub)}
+  details summary{cursor:pointer; outline:none}
+  details ul{margin:8px 0 0; padding-left:18px; line-height:1.8}
+  kbd{background:#f2ece1; border:1px solid var(--line); border-radius:4px;
+    padding:1px 5px; font-size:11.5px; font-family:Consolas,monospace}
+
+        .tok{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6b6257;margin-right:8px;}
+        .tok input{width:150px;padding:6px 8px;border:1px solid #d9cfc0;border-radius:6px;
+                   font-family:ui-monospace,Consolas,monospace;font-size:12px;background:#fffdf8;}
+  </style>
+  </head>
+  <body>
+  <div class="wrap">
+  <header>
+    <h1>AI 回答 → <span>Word</span> 排版转换</h1>
+    <span class="tag">宋体小四 · 1.5倍行距 · 首行缩进2字</span>
+    <span class="tag">标题走 Word 内置样式</span>
+    <span class="tag">三线表</span>
+  </header>
+
+  <div class="cols">
+    <!-- 左：输入 -->
+    <div class="card">
+      <h2>① 粘贴 AI 回答 / Markdown</h2>
+      <div class="row">
+        <input type="text" id="title" placeholder="文件名 / 文档标题（留空则自动命名）">
+      </div>
+      <textarea id="md" placeholder="把 AI 的回答直接粘进来……&#10;&#10;支持 Markdown：## 标题、**加粗**、- 列表、| 表格 |、```代码```、$公式$"></textarea>
+      <div class="row" style="margin-top:10px; margin-bottom:0">
+        <button id="btnPreview" class="gold">生成预览</button>
+        <label class="tok" title="服务器要求的调用令牌，存在本机浏览器里，不会上传到别处">
+          令牌 <input id="tok" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴一次即可记住">
+        </label>
+        <button id="btnDocx" class="primary">下载 Word 文件</button>
+        <button id="btnClip">复制为 Word 格式</button>
+        <button id="btnClear">清空</button>
+      </div>
+      <div class="status" id="status"></div>
+      <details>
+        <summary>为什么直接粘贴会乱？点开看原因</summary>
+        <ul>
+          <li>网页的字体/字号写在 CSS 类里，<b>Word 不认类</b>，粘贴时全部丢掉；
+              只剩浏览器默认的宋体字号。</li>
+          <li>标题在网页里可能只是一个"加粗的大字"，<b>不是 Word 的"标题 1"</b>，
+              所以导航窗格空白、目录生成不出来。</li>
+          <li>公式在网页里是一堆 span 拼的字符，Word 收到的是<b>乱码文本</b>，
+              不是可编辑公式。</li>
+          <li>表格在网页里靠 CSS 边框，Word 收到后<b>边框和列宽全丢</b>。</li>
+        </ul>
+      </details>
+    </div>
+
+    <!-- 右：预览 -->
+    <div class="card">
+      <h2>② 预览效果 <span style="font-weight:400;color:#b0a595" id="stat"></span></h2>
+      <div class="preview" id="preview">
+        <div class="empty">左边粘贴内容，点「生成预览」查看排版效果</div>
+      </div>
+      <div class="hint">
+        <b>「下载 Word 文件」</b>最稳：公式是 Word 原生可编辑公式，长文不会卡。<br>
+        <b>「复制为 Word 格式」</b>更快，但浏览器只能写网页剪贴板，样式会有损（导航窗格、部分三线表属性可能丢）。要完全一致，用下面那个 Windows 小工具。
+      </div>
+    </div>
+  </div>
+
+    <!-- 排版设置：预设一键套 + 下拉框微调 -->
+    <div class="card" id="styleCard">
+      <h2>③ 排版设置 <span style="font-weight:400;color:#b0a595;font-size:13px">先选预设，再按需微调</span></h2>
+      <div class="presets" id="presets"><div class="hint">正在加载预设…</div></div>
+      <details id="tweakWrap">
+        <summary>微调各项参数（选预设后会自动填好）</summary>
+        <div class="tweak">
+          <label>正文中文字体<select id="c_body_font"></select></label>
+          <label>正文字号<select id="c_body_size"></select></label>
+          <label>行距<select id="c_line_rule"></select></label>
+          <label>首行缩进<select id="c_indent">
+            <option value="0">不缩进</option><option value="1">缩进 1 字</option>
+            <option value="2">缩进 2 字</option><option value="3">缩进 3 字</option>
+            <option value="4">缩进 4 字</option></select></label>
+          <label>标题字体<select id="c_head_font"></select></label>
+          <label>一级标题<select id="c_h1_size"></select></label>
+          <label>二级标题<select id="c_h2_size"></select></label>
+          <label>文档大标题<select id="c_title_size"></select></label>
+          <label>代码字号<select id="c_code_size"></select></label>
+          <label>西文字体<select id="c_body_latin"></select></label>
+        </div>
+        <div class="hint" id="cfgNote" style="margin-top:10px"></div>
+      </details>
+    </div>
+  </div>
+
+  <script>
+  const $ = s => document.querySelector(s);
+  const mdEl = $('#md'), titleEl = $('#title'), statusEl = $('#status'),
+      previewEl = $('#preview');
+
+  function setStatus(msg, kind) {
+  statusEl.textContent = msg || '';
+  statusEl.className = 'status' + (kind ? ' ' + kind : '');
+  }
+
+  // —— 轻量 Markdown 预览渲染（只用于看效果，转换以服务端 pandoc 为准）——
+  function escapeHtml(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+  function mdToHtml(md){
+  const lines = md.replace(/\r\n/g,'\n').split('\n');
+  const out = []; let inCode=false, codeBuf=[], listType=null, tableBuf=[];
+
+  const flushList = () => { if(listType){ out.push(`</${listType}>`); listType=null; } };
+  const flushTable = () => {
+    if(!tableBuf.length) return;
+    const rows = tableBuf.filter(r=>!/^\s*\|?[\s:|-]+\|?\s*$/.test(r))
+                         .map(r=>r.replace(/^\s*\|/,'').replace(/\|\s*$/,'').split('|').map(c=>c.trim()));
+    if(rows.length){
+      let h = '<table>';
+      h += '<thead><tr>' + rows[0].map(c=>`<th>${inline(c)}</th>`).join('') + '</tr></thead>';
+      h += '<tbody>' + rows.slice(1).map(r=>'<tr>'+r.map(c=>`<td>${inline(c)}</td>`).join('')+'</tr>').join('') + '</tbody>';
+      h += '</table>';
+      out.push(h);
+    }
+    tableBuf = [];
+  };
+
+  function inline(t){
+    return escapeHtml(t)
+      .replace(/`([^`]+)`/g,'<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+      .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g,'<em>$1</em>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>');
+  }
+
+  for(const raw of lines){
+    const line = raw;
+    if(/^```/.test(line)){
+      if(inCode){ out.push('<pre>'+escapeHtml(codeBuf.join('\n'))+'</pre>'); codeBuf=[]; inCode=false; }
+      else { flushList(); flushTable(); inCode=true; }
+      continue;
+    }
+    if(inCode){ codeBuf.push(line); continue; }
+
+    if(/^\s*\|.*\|/.test(line)){ flushList(); tableBuf.push(line); continue; }
+    flushTable();
+
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if(h){ flushList(); out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`); continue; }
+
+    if(/^\s*[-*+]\s+/.test(line)){
+      if(listType!=='ul'){ flushList(); out.push('<ul>'); listType='ul'; }
+      out.push(`<li>${inline(line.replace(/^\s*[-*+]\s+/,''))}</li>`); continue;
+    }
+    if(/^\s*\d+[.、]\s+/.test(line)){
+      if(listType!=='ol'){ flushList(); out.push('<ol>'); listType='ol'; }
+      out.push(`<li>${inline(line.replace(/^\s*\d+[.、]\s+/,''))}</li>`); continue;
+    }
+    flushList();
+
+    if(/^>\s?/.test(line)){ out.push(`<blockquote>${inline(line.replace(/^>\s?/,''))}</blockquote>`); continue; }
+    if(!line.trim()) continue;
+    out.push(`<p>${inline(line)}</p>`);
+  }
+  if(inCode) out.push('<pre>'+escapeHtml(codeBuf.join('\n'))+'</pre>');
+  flushList(); flushTable();
+  return out.join('\n');
+  }
+
+  function body(){
+  let md = mdEl.value;
+  const t = titleEl.value.trim();
+  if(t && !/^\s*#\s/.test(md)) md = '# ' + t + '\n\n' + md;
+  return md;
+  }
+
+  $('#btnPreview').onclick = () => {
+  const md = body();
+  if(!md.trim()){ setStatus('请先粘贴内容', 'err'); return; }
+  previewEl.innerHTML = mdToHtml(md);
+  $('#stat').textContent = md.length + ' 字符';
+  setStatus('预览已更新（预览为近似效果，最终以 Word 文件为准）', 'ok');
+  };
+
+  // ---- 调用令牌：存 sessionStorage，关掉浏览器就没了 ----
+  const tokEl = $('#tok');
+  tokEl.value = sessionStorage.getItem('md2wToken') || '';
+  tokEl.addEventListener('change', () => {
+  sessionStorage.setItem('md2wToken', tokEl.value.trim());
+  });
+  function authHeaders(extra) {
+  const h = Object.assign({}, extra || {});
+  const t = (tokEl.value || '').trim();
+  if (t) h['X-Md2W-Token'] = t;
+  return h;
+  }
+  function needToken(r) {
+  if (r.status === 401) {
+    setStatus('令牌不对：请在左上角「令牌」框里填入 服务器主人给你的那串字符。', 'err');
+    return true;
+  }
+  return false;
+  }
+
+  $('#btnDocx').onclick = async () => {
+  const md = body();
+  if(!md.trim()){ setStatus('请先粘贴内容', 'err'); return; }
+  const btn = $('#btnDocx');
+  btn.disabled = true; setStatus('正在生成 Word 文件…');
+  try{
+    const r = await fetch('api/docx', {
+      method:'POST',
+      headers: authHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({md, title: titleEl.value.trim(), style: activeCfg()})
+    });
+    if(needToken(r)) return;
+    if(!r.ok){
+      let msg = '生成失败';
+      try{ msg = (await r.json()).error || msg; }catch(e){}
+      setStatus(msg, 'err'); return;
+    }
+    const blob = await r.blob();
+    // 文件名以前端输入框为准（用户自己写的名字最可靠），
+    // 其次用服务端 filename* 里的真名，最后才是 ASCII 兜底名。
+    const cd = r.headers.get('Content-Disposition') || '';
+    let name = '';
+    const star = cd.match(/filename\*=UTF-8''([^;]+)/i);
+    if (star) { try { name = decodeURIComponent(star[1]); } catch (e) {} }
+    if (!name) {
+      const plain = cd.match(/filename="?([^";]+)"?/i);
+      if (plain) name = plain[1];
+    }
+    if (!name) name = 'AI文档.docx';
+    const typed = (titleEl.value || '').trim();
+    if (typed) {
+      const safe = typed.replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 40);
+      name = (safe || 'AI文档') + '_' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '.docx';
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    setStatus('已下载：' + name + '（双击用 Word 打开即可）', 'ok');
+  }catch(e){
+    setStatus('网络错误：' + e.message, 'err');
+  }finally{ btn.disabled = false; }
+  };
+
+  $('#btnClip').onclick = async () => {
+  const md = body();
+  if(!md.trim()){ setStatus('请先粘贴内容', 'err'); return; }
+  const btn = $('#btnClip');
+  btn.disabled = true; setStatus('正在转换为剪贴板格式…');
+  try{
+    const r = await fetch('api/clip', {
+      method:'POST',
+      headers: authHeaders({'Content-Type':'application/json'}),
+      body: JSON.stringify({md, title: titleEl.value.trim(), style: activeCfg()})
+    });
+    if(needToken(r)) return;
+    const j = await r.json();
+    if(!j.ok){ setStatus(j.error || '转换失败', 'err'); return; }
+
+    // 同时写入 text/html 与 text/plain：Word 取 html，记事本取纯文本
+    const plain = md.replace(/[#*`>|-]{1,}/g, ' ').replace(/\n{3,}/g,'\n\n').trim();
+    try{
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/html': new Blob([j.html], {type:'text/html'}),
+        'text/plain': new Blob([plain], {type:'text/plain'})
+      })]);
+      setStatus('已复制。切到 Word，按 Ctrl+V 粘贴即可。', 'ok');
+    }catch(e){
+      // 兜底：有些浏览器/非 https 环境不允许写 HTML 剪贴板
+      setStatus('浏览器拒绝写入剪贴板（需 https 或本地页面）。请改用「下载 Word 文件」。', 'err');
+    }
+  }catch(e){
+    setStatus('网络错误：' + e.message, 'err');
+  }finally{ btn.disabled = false; }
+  };
+
+  $('#btnClear').onclick = () => {
+  mdEl.value=''; titleEl.value=''; previewEl.innerHTML =
+    '<div class="empty">左边粘贴内容，点「生成预览」查看排版效果</div>';
+  $('#stat').textContent=''; setStatus('');
+  };
+
+  // 支持直接 Ctrl+V 粘进 textarea（默认行为已支持），并提示当前字符数
+  mdEl.addEventListener('input', () => {
+  const n = mdEl.value.length;
+  $('#stat').textContent = n ? n + ' 字符' : '';
+  });
+  // 收集当前排版设置；预设没加载成功时返回 undefined（后端会用默认值）
+function activeCfg() {
+  try {
+    if (!CFG.meta) return undefined;
+    return readUI();
+  } catch (e) { return undefined; }
+}
+
+// ===== 排版设置：预设 + 微调 =====
+// 设计：预设只负责"填好下拉框"，下拉框才是唯一事实来源。
+// 这样用户改任何一项，都能选出"最接近的预设但仍保持我的改动"，
+// 而不是出现"选了预设就覆盖我手动改的值"这种让人困惑的行为。
+const CFG = {
+  meta: null,
+  preset: 'thesis',     // 当前高亮哪个预设
+  edited: false,        // 用户是否手动改过
+};
+
+const CFG_FIELDS = [
+  ['c_body_font',  'body_font',  'cn_fonts'],
+  ['c_body_size',  'body_size',  'sizes'],
+  ['c_line_rule',  'line_rule',  'line_rules'],
+  ['c_head_font',  'head_font',  'cn_fonts'],
+  ['c_h1_size',    'h1_size',    'sizes'],
+  ['c_h2_size',    'h2_size',    'sizes'],
+  ['c_title_size', 'title_size', 'sizes'],
+  ['c_code_size',  'code_size',  'sizes'],
+  ['c_body_latin', 'body_latin', 'en_fonts'],
+];
+
+function fillSelect(sel, values, current) {
+  sel.innerHTML = '';
+  for (const v of values) {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    if (String(v) === String(current)) o.selected = true;
+    sel.appendChild(o);
+  }
+}
+
+function applyCfgToUI(cfg) {
+  for (const [id, key, listName] of CFG_FIELDS) {
+    const sel = document.getElementById(id);
+    if (!sel) continue;
+    fillSelect(sel, CFG.meta[listName], cfg[key]);
+  }
+  const ind = document.getElementById('c_indent');
+  if (ind) ind.value = String(cfg.indent_chars ?? 2);
+}
+
+function readUI() {
+  const cfg = {};
+  for (const [id, key] of CFG_FIELDS) {
+    const sel = document.getElementById(id);
+    if (sel) cfg[key] = sel.value;
+  }
+  const ind = document.getElementById('c_indent');
+  cfg.indent_chars = ind ? parseInt(ind.value, 10) || 0 : 2;
+  cfg.preset = CFG.preset;
+  return cfg;
+}
+
+function highlightPreset(key) {
+  document.querySelectorAll('.preset').forEach(el => {
+    el.classList.toggle('on', el.dataset.key === key);
+  });
+}
+
+function noteCfg(msg) {
+  const n = document.getElementById('cfgNote');
+  if (n) n.textContent = msg || '';
+}
+
+function buildPresetCards(presets) {
+  const box = document.getElementById('presets');
+  box.innerHTML = '';
+  for (const p of presets) {
+    const d = document.createElement('div');
+    d.className = 'preset';
+    d.dataset.key = p.key;
+    const cfg = p.cfg || {};
+    d.innerHTML = '<b></b><span></span><em></em>';
+    d.querySelector('b').textContent = p.name;
+    d.querySelector('span').textContent = p.desc;
+    d.querySelector('em').textContent =
+      `${cfg.body_font || ''} ${cfg.body_size || ''} · ${cfg.line_rule || ''} 行距 · ` +
+      `缩进 ${cfg.indent_chars ?? 0} 字`;
+    d.onclick = () => {
+      CFG.preset = p.key;
+      CFG.edited = false;
+      highlightPreset(p.key);
+      applyCfgToUI(cfg);
+      noteCfg(`已套用「${p.name}」，需要的话可以在上面逐项微调。`);
+      // 已经生成过预览的话，自动按新排版重刷一次
+      if (previewEl && previewEl.querySelector('h1,h2,h3,p')) {
+        document.getElementById('btnPreview').click();
+      }
+    };
+    box.appendChild(d);
+  }
+}
+
+async function loadPresets() {
+  try {
+    const r = await fetch('api/presets', { headers: authHeaders() });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || '加载失败');
+    CFG.meta = j;
+    buildPresetCards(j.presets);
+    const def = j.presets.find(p => p.key === 'thesis') || j.presets[0];
+    CFG.preset = def ? def.key : null;
+    highlightPreset(CFG.preset);
+    applyCfgToUI(def ? def.cfg : j.default);
+    noteCfg('想要更方便？可以微调后告诉我，我把它存成新预设。');
+  } catch (e) {
+    document.getElementById('presets').innerHTML =
+      '<div class="hint">预设加载失败：' + e.message + '（不影响使用，将用默认排版）</div>';
+  }
+}
+
+// 手动改任何一项 -> 取消预设高亮，但仍保留 preset 值作为"底子"。
+// 注意：这段在脚本末尾执行，此时 DOM 已解析完（script 在 body 底部），
+// 不要再套 DOMContentLoaded，否则在页面加载完成后动态注入会绑不上。
+function bindManualChange() {
+  const ids = CFG_FIELDS.map(f => f[0]).concat(['c_indent']);
+  for (const id of ids) {
+    const sel = document.getElementById(id);
+    if (!sel) continue;
+    sel.onchange = () => {
+      CFG.edited = true;
+      highlightPreset(null);
+      noteCfg('已手动调整。改动会生效，但预设卡片不再显示为选中。');
+    };
+  }
+}
+
+bindManualChange();
+loadPresets();
+</script>
+  </body>
+  </html>

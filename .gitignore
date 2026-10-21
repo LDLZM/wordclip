@@ -1,0 +1,10 @@
+.env
+.env.*
+wordclip.token
+*.token
+__pycache__/
+*.pyc
+preview/
+out_test.docx
+*.zip
+.DS_Store

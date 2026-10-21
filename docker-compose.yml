@@ -1,0 +1,32 @@
+services:
+  md2word:
+    build: .
+    container_name: md2word
+    restart: unless-stopped
+    ports:
+      # 只监听本机，由 nginx 反代对外，不直接暴露容器端口
+      - "127.0.0.1:8020:8000"
+    # 代码以只读方式挂进容器：改完 wordclip.py 只需 restart，
+    # 不必重新 build 镜像（镜像里仍有一份副本做兜底）。
+    volumes:
+      - ./wordclip.py:/app/wordclip.py:ro
+      - ./app.py:/app/app.py:ro
+      # 按配置生成 ref.docx 用的样式构建器，改排版参数后 restart 即可生效
+      - ./build_reference.py:/app/build_reference.py:ro
+      # Flask 读的是 templates/ 子目录；挂到 /app/index.html 是不生效的
+      - ./templates:/app/templates:ro
+    environment:
+      - TZ=Asia/Shanghai
+      # 调用令牌：/opt/md2word/.env 提供（600 权限）。留空则只允许本机调用。
+      - MD2W_TOKEN=${MD2W_TOKEN:-}
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
