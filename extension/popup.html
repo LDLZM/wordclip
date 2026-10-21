@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>AI 回答转 Word</title>
+<style>
+  :root { --ink:#2a2520; --paper:#faf6ec; --gold:#a8791f; --red:#a8341f; --line:#e2d8c3; }
+  * { box-sizing: border-box; }
+  body { margin:0; width:320px; background:var(--paper); color:var(--ink);
+         font: 13px/1.6 "Microsoft YaHei", "PingFang SC", sans-serif; }
+  header { padding:12px 14px 10px; border-bottom:1px solid var(--line);
+           display:flex; align-items:baseline; gap:6px; }
+  header b { font-size:14px; letter-spacing:.5px; }
+  header span { font-size:11px; color:#8a7f6d; }
+  main { padding:10px 14px 14px; }
+  .state { font-size:12px; padding:7px 9px; border-radius:6px;
+           background:#f2ece0; border:1px solid var(--line); margin-bottom:10px; }
+  .state.good { background:#eef5ec; border-color:#c9dcc3; }
+  .state.bad  { background:#fbeeeb; border-color:#e7c6bf; color:#8c2f1e; }
+  button { width:100%; padding:9px 10px; border-radius:7px; cursor:pointer;
+           font-size:13px; font-family:inherit; margin-bottom:8px;
+           border:1px solid var(--line); background:#fff; color:var(--ink); }
+  button:hover { border-color:var(--gold); }
+  button.primary { background:var(--gold); border-color:var(--gold); color:#fff; font-weight:600; }
+  button.primary:hover { background:#8f6518; }
+  .row { display:flex; align-items:center; justify-content:space-between;
+         font-size:12px; color:#6f6555; padding-top:4px; border-top:1px dashed var(--line); }
+  .row a { color:var(--gold); text-decoration:none; }
+  .pill { font-size:11px; padding:1px 7px; border-radius:9px; border:1px solid transparent; }
+  .pill.ok { background:#eef5ec; color:#3d6b32; border-color:#c9dcc3; }
+  .pill.warn { background:#fbeeeb; color:#8c2f1e; border-color:#e7c6bf; }
+  .msg { min-height:16px; font-size:12px; margin-top:6px; }
+  .msg.good { color:#3d6b32; }
+  .msg.bad { color:var(--red); }
+  .hint { font-size:11px; color:#8a7f6d; margin:2px 0 10px; }
+</style>
+</head>
+<body>
+<header><b>转 Word</b><span>选中即转，粘到 Word 带格式</span></header>
+<main>
+  <div id="state" class="state">正在检查当前页面…</div>
+
+  <button id="btnConvert" class="primary">转换并复制到剪贴板</button>
+  <button id="btnCopyOnly">只复制（不弹提示）</button>
+
+  <div class="hint">也可以：选中文字后右键 →“转成 Word 格式并复制”，或按 Alt+Shift+W。</div>
+
+  <div class="row">
+    <span>服务器 <span id="server">…</span></span>
+    <a href="#" id="btnOpen">设置</a>
+  </div>
+  <div class="row" style="border-top:none;padding-top:6px">
+    <span>访问令牌</span><span id="tokenState" class="pill warn">…</span>
+  </div>
+  <div id="msg" class="msg"></div>
+</main>
+<script src="popup.js"></script>
+</body>
+</html>

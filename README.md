@@ -16,7 +16,7 @@
 
 `docs/page-1.png` / `docs/page-2.png` 是实际输出截图，`docs/out_test.pdf` 是同一份文档的 PDF。
 
-## 三种用法
+## 四种用法
 
 | 用法 | 适合谁 | 要装什么 |
 |---|---|---|
@@ -62,6 +62,27 @@ pip install -r requirements.txt
 
 python3 wordclip.py sample.md > out.html    # 剪贴板 HTML，浏览器打开后 Ctrl+A/Ctrl+C
 ```
+
+### ④ 浏览器扩展（Edge / Chrome，选中即转）
+
+在 ChatGPT / DeepSeek / Claude / Kimi 里选中一段回答，按 `Alt+Shift+W`
+（或右键菜单「转成 Word 格式」），扩展会把它还原成 Markdown 送给服务端，
+拿回排好版的 HTML 写进剪贴板 —— 切到 Word / WPS 直接 `Ctrl+V`：
+
+- 标题层级、有序/无序/嵌套列表、三线表、代码块、`$$...$$` 公式都保留
+- 公式在 Word 里是**可编辑的公式对象**，不是图片
+- 中文正文字体、首行缩进 2 字符、1.5 倍行距已按中文排版习惯预设
+
+安装（开发者模式，不用上架商店）：
+
+1. 下载 `extension/` 目录（或整包 zip）解压到任意位置
+2. Edge 打开 `edge://extensions`（Chrome 是 `chrome://extensions`）
+3. 打开右下角「开发人员模式」，点「加载解压缩的扩展」，选中那个文件夹
+4. 点扩展图标 →「设置」→ 填你自己的服务器地址和令牌 → 保存
+5. 顺便把令牌写进 `wordclip.token` 让命令行/网页版共用
+
+扩展目录里带了自检脚本（`tests/`），不用装 node 也能验证清单和文件完整性；
+装了 node 的话 `node tests/logic_test.js` 会额外跑剪贴板偏移和 Markdown 还原逻辑。
 
 ## 排版是怎么做出来的（技术要点）
 
@@ -113,6 +134,7 @@ clipboard/            纯本地版客户端（不依赖服务器）
 build_client.py       把占位符 @@SERVER_PLACEHOLDER@@ 换成你的默认地址
 pack-win.py/.sh       给自己的用户打包带令牌的客户端 zip
 sample.md             示例输入
+extension/            Edge / Chrome 扩展（选中即转，见上文 ④）
 docs/                 实际输出效果（png / pdf）
 selftest.py e2e_test.py  自测与端到端测试
 ```
